@@ -1,33 +1,82 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import {
+  IconAlarm,
+  IconAlarmFilled,
+  IconClockHour8,
+  IconClockHour8Filled,
+} from "@tabler/icons-react-native";
+import { Tabs } from "expo-router";
+import React from "react";
+import { Platform, useColorScheme } from "react-native";
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
+import { HapticTab } from "@/components/HapticTab";
+import IconWrapper from "@/components/IconWrapper";
+import TabBarBackground from "@/components/ui/TabBarBackground";
+import { BaseColor } from "@/theme/colors";
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
+        headerShown: true,
+        headerTransparent: true,
+        headerTitleStyle: {
+          display: "none",
+        },
+        headerLeftContainerStyle: { paddingLeft: 8 },
+        headerRightContainerStyle: { paddingRight: 8 },
         tabBarButton: HapticTab,
-      }}>
+        tabBarBackground: TabBarBackground,
+        tabBarPosition: "bottom",
+        tabBarActiveTintColor:
+          colorScheme === "dark" ? BaseColor[50] : BaseColor[900],
+        tabBarStyle: Platform.select({
+          ios: {
+            borderTopWidth: 0.2,
+            borderTopColor:
+              colorScheme === "dark" ? BaseColor[700] : BaseColor[200],
+            position: "absolute",
+            elevation: 0,
+            backgroundColor: "transparent",
+          },
+          default: {
+            borderTopWidth: 0.2,
+            borderTopColor:
+              colorScheme === "dark" ? BaseColor[600] : BaseColor[100],
+            backgroundColor:
+              colorScheme === "dark" ? BaseColor[700] : BaseColor[50],
+            elevation: 0,
+          },
+        }),
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: "For Time",
+          tabBarIcon: ({ color, focused }) =>
+            focused ? (
+              <IconWrapper
+                icon={IconClockHour8Filled}
+                size={28}
+                color={color}
+              />
+            ) : (
+              <IconWrapper icon={IconClockHour8} size={28} color={color} />
+            ),
         }}
       />
+
       <Tabs.Screen
-        name="explore"
+        name="intervals"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: "Intervals",
+          tabBarIcon: ({ color, focused }) =>
+            focused ? (
+              <IconWrapper icon={IconAlarmFilled} size={28} color={color} />
+            ) : (
+              <IconWrapper icon={IconAlarm} size={28} color={color} />
+            ),
         }}
       />
     </Tabs>
