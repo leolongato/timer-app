@@ -3,12 +3,12 @@ import { Animated, StyleSheet, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 
 type TimerProgressBarType = {
-  percentage: number; // 0 a 100
+  percentage: number;
   radius: number;
   strokeWidth: number;
   trackColor: string;
   progressColor: string;
-  animationDuration?: number; // opcional, ms
+  animationDuration?: number;
   children?: React.ReactNode;
 };
 
