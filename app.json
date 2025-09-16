@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "timer-app.build-ios",
+      "bundleIdentifier": "production",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
