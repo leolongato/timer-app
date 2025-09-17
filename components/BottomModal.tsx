@@ -17,8 +17,8 @@ export default function BottomModal({ visible, onClose, children }: Props) {
           onTouchEnd={() => console.log("aqui")}
           tint={
             colorScheme === "dark"
-              ? "systemMaterialLight"
-              : "systemMaterialDark"
+              ? "systemChromeMaterialLight"
+              : "systemChromeMaterialDark"
           }
           experimentalBlurMethod="dimezisBlurView" // For Android
           intensity={15}

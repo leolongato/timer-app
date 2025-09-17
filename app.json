@@ -55,6 +55,12 @@
         "projectId": "f7cb8def-b345-4340-b42c-99020d1ba4f1"
       }
     },
-    "owner": "leolongato"
+    "owner": "leolongato",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f7cb8def-b345-4340-b42c-99020d1ba4f1"
+    }
   }
 }

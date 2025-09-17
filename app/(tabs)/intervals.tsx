@@ -2,13 +2,12 @@ import IconWrapper from "@/components/IconWrapper";
 import TimerProgressBar from "@/components/TimerProgressBar";
 import TimeSelector from "@/components/TimeSelector";
 import WorkoutResult from "@/components/WorkoutResult";
-import { Round, StepType, useIntervalTimer } from "@/hooks/useInterval";
+import { Round, StepType, useTimer } from "@/hooks/useTimer";
 import { BaseColor, ProgressColor } from "@/theme/colors";
 import formatTime from "@/utils/format-time";
 import {
   IconCheck,
   IconClockEdit,
-  IconHeartPause,
   IconPlayerPauseFilled,
   IconPlayerPlayFilled,
   IconRotate,
@@ -74,7 +73,7 @@ export default function Intervals() {
     stop,
     reset,
     progress,
-  } = useIntervalTimer(workoutDefinition, 10);
+  } = useTimer(workoutDefinition, 10);
 
   return (
     <View className="items-center justify-center flex-1 bg-white dark:bg-zinc-900">
@@ -88,18 +87,27 @@ export default function Intervals() {
         >
           {/* STEP NAME */}
           <Text
-            style={{ color: getProgressColor(currentStep?.type, colorScheme) }}
-            className="text-5xl font-bold text-zinc-900 dark:text-zinc-50"
+            style={{
+              color: getProgressColor(currentStep?.type, colorScheme),
+            }}
+            className="text-5xl font-bold tracking-wide text-zinc-900 dark:text-zinc-50"
           >
             {currentStep?.type.toUpperCase()}
           </Text>
 
           {/* STEP COUNTER */}
           <Text
-            style={{ color: getProgressColor(currentStep?.type, colorScheme) }}
+            style={{
+              color: getProgressColor(currentStep?.type, colorScheme),
+            }}
             className="mt-2 font-bold text-8xl text-zinc-900 dark:text-zinc-50"
           >
             {formatTime(displayTime)}
+          </Text>
+
+          {/* ROUNDS */}
+          <Text className="self-center text-xl uppercase text-zinc-900 dark:text-zinc-50">
+            {currentRound} of {totalRounds} rounds
           </Text>
         </TimerProgressBar>
 
@@ -109,16 +117,16 @@ export default function Intervals() {
             <IconWrapper
               icon={IconClockEdit}
               pressable={true}
-              className="absolute rounded-full -top-4 -right-4 bg-zinc-50 dark:bg-zinc-800"
+              className="absolute rounded-full -top-4 -right-4"
               onPress={() => setEditTime(true)}
             />
           )}
           <View className="flex-row items-center justify-center gap-1">
             <View className="items-center justify-center">
               <Text className="text-5xl font-extrabold text-zinc-900 dark:text-zinc-50">
-                {isRunning && elapsed > 0
-                  ? elapsedMinutes.toString().padStart(2, "0")
-                  : minutes.toString().padStart(2, "0")}
+                {currentStep.type === StepType.PREPARE
+                  ? minutes.toString().padStart(2, "0")
+                  : elapsedMinutes.toString().padStart(2, "0")}
               </Text>
               <Text className="uppercase text-zinc-900 dark:text-zinc-50">
                 minutes
@@ -129,9 +137,9 @@ export default function Intervals() {
             </Text>
             <View className="items-center justify-center">
               <Text className="text-5xl font-extrabold text-zinc-900 dark:text-zinc-50">
-                {isRunning && elapsed > 0
-                  ? elapsedSeconds.toString().padStart(2, "0")
-                  : seconds.toString().padStart(2, "0")}
+                {currentStep.type === StepType.PREPARE
+                  ? seconds.toString().padStart(2, "0")
+                  : elapsedSeconds.toString().padStart(2, "0")}
               </Text>
               <Text className="uppercase text-zinc-900 dark:text-zinc-50">
                 seconds
@@ -139,13 +147,12 @@ export default function Intervals() {
             </View>
           </View>
 
-          {/* ROUNDS */}
-
-          <Text className="self-center text-xl font-light uppercase text-zinc-900 dark:text-zinc-50">
-            {currentRound} of {totalRounds} rounds
-          </Text>
+          {/* REST */}
           <View className="flex-row items-center justify-center gap-4">
-            <IconWrapper size={18} icon={IconHeartPause} />
+            {/* <IconWrapper size={18} icon={IconHeartPause} /> */}
+            <Text className="text-lg font-light uppercase text-zinc-900 dark:text-zinc-50">
+              rest
+            </Text>
             <Text className="text-xl font-bold text-red-900 uppercase dark:text-zinc-50">
               {`${restMinutes.toString().padStart(2, "0")}:${restSeconds.toString().padStart(2, "0")}`}
             </Text>
@@ -165,7 +172,8 @@ export default function Intervals() {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => (isRunning ? stop() : start())}
-            className="p-4 rounded-full bg-zinc-800 dark:bg-zinc-50"
+            disabled={minutes + seconds === 0 || rounds === 0}
+            className="p-4 rounded-full bg-zinc-800 dark:bg-zinc-50 disabled:opacity-50"
           >
             {!isRunning ? (
               <IconPlayerPlayFilled
@@ -180,7 +188,7 @@ export default function Intervals() {
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            disabled={!isRunning && elapsed === 0}
+            disabled={currentStep.type === StepType.PREPARE}
             className="p-4 border rounded-full border-zinc-800 dark:border-zinc-50 disabled:opacity-25"
             onPress={() => {
               stop();

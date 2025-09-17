@@ -9,7 +9,7 @@ export enum StepType {
 export type Step = { type: StepType; duration: number };
 export type Round = { repeat: number; steps: Step[] };
 
-export function useIntervalTimer(rounds: Round[], prepare: number = 10) {
+export function useTimer(rounds: Round[], prepare: number = 10) {
   const { sequence, stepToRound, totalRounds } = useMemo(() => {
     const seq: Step[] = [];
     const map: number[] = [];
@@ -64,7 +64,7 @@ export function useIntervalTimer(rounds: Round[], prepare: number = 10) {
             return sequence[nextIndex].duration;
           } else {
             setIsRunning(false);
-            setTimeout(() => setShowPopup(true), 50);
+            setShowPopup(true);
             return 0;
           }
         }
@@ -77,6 +77,7 @@ export function useIntervalTimer(rounds: Round[], prepare: number = 10) {
   const progress = useMemo(() => {
     const curStep = sequence[stepIndex];
     if (!curStep) return 0;
+    if (curStep.duration === 0) return 0;
     return ((curStep.duration - remaining) / curStep.duration) * 100;
   }, [remaining, stepIndex, sequence]);
 
@@ -100,7 +101,8 @@ export function useIntervalTimer(rounds: Round[], prepare: number = 10) {
     setShowPopup(false);
   };
 
-  const currentStep = sequence[stepIndex] ?? null;
+  const currentStep =
+    sequence[stepIndex].duration > 0 ? sequence[stepIndex] : sequence[0];
   const currentRound = stepToRound[stepIndex] ?? 0;
 
   return {
