@@ -3,13 +3,7 @@ import {
   IconCaretUpFilled,
 } from "@tabler/icons-react-native";
 import React, { useEffect, useRef, useState } from "react";
-import {
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { NativeSyntheticEvent, ScrollView, Text, View } from "react-native";
 import IconWrapper from "./IconWrapper";
 
 const ITEM_HEIGHT = 75;
@@ -31,6 +25,7 @@ export default function NumberCarousel({
   const numbers = Array.from({ length: range }, (_, i) => i);
   const [selected, setSelected] = useState(value);
   const scrollRef = useRef<ScrollView>(null);
+  const isScrollingRef = useRef(false);
 
   useEffect(() => {
     onValueChange(numbers[selected]);
@@ -41,28 +36,34 @@ export default function NumberCarousel({
       y: selected * ITEM_HEIGHT,
       animated: false,
     });
-  }, [selected]);
+  }, []);
 
-  useEffect(() => {
+  const scrollToIndex = (index: number) => {
     if (!scrollRef.current) return;
-    scrollRef.current.scrollTo({
-      y: value * ITEM_HEIGHT,
-      animated: false,
-    });
-  }, [value]);
+    isScrollingRef.current = true;
+    scrollRef.current.scrollTo({ y: index * ITEM_HEIGHT, animated: true });
+
+    setTimeout(() => {
+      isScrollingRef.current = false;
+      setSelected(index);
+    }, 200);
+  };
 
   const handleUp = () => {
-    setSelected((prev) => Math.max(prev - 1, 0));
+    const next = Math.max(selected - 1, 0);
+    if (!isScrollingRef.current) scrollToIndex(next);
   };
 
   const handleDown = () => {
-    setSelected((prev) => Math.min(prev + 1, numbers.length - 1));
+    const next = Math.min(selected + 1, numbers.length - 1);
+    if (!isScrollingRef.current) scrollToIndex(next);
   };
 
-  const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const index = Math.round(event.nativeEvent.contentOffset.y / ITEM_HEIGHT);
-    if (index >= 0 && index < numbers.length) {
-      setSelected(numbers[index]);
+  const handleScroll = (event: NativeSyntheticEvent<any>) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    const index = Math.round(offsetY / ITEM_HEIGHT);
+    if (index >= 0 && index < numbers.length && index !== selected) {
+      setSelected(index);
     }
   };
 
@@ -70,7 +71,6 @@ export default function NumberCarousel({
     <View className="flex items-center justify-center gap-2">
       <IconWrapper icon={IconCaretUpFilled} pressable onPress={handleUp} />
 
-      {/* ScrollView do carrossel */}
       <View
         style={{ height: CONTAINER_HEIGHT }}
         className="p-2 rounded-lg bg-zinc-200/70 dark:bg-zinc-800"
@@ -80,14 +80,15 @@ export default function NumberCarousel({
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
           snapToInterval={ITEM_HEIGHT}
-          decelerationRate="fast"
+          decelerationRate="normal"
+          scrollEventThrottle={16}
+          onScroll={handleScroll}
           contentContainerStyle={{
             paddingTop: PADDING,
             paddingBottom: PADDING,
             paddingLeft: 0,
             paddingRight: 0,
           }}
-          onMomentumScrollEnd={handleScrollEnd}
         >
           {numbers.map((item, index) => (
             <View
@@ -107,6 +108,7 @@ export default function NumberCarousel({
           ))}
         </ScrollView>
       </View>
+
       <IconWrapper pressable onPress={handleDown} icon={IconCaretDownFilled} />
     </View>
   );

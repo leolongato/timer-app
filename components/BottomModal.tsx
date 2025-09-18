@@ -26,7 +26,7 @@ export default function BottomModal({ visible, onClose, children }: Props) {
         />
       )}
       <Modal transparent={true} visible={visible} animationType="slide">
-        <View className="absolute bottom-0 items-center w-full p-8 pb-12 shadow-lg rounded-t-xl bg-zinc-50 dark:bg-zinc-900">
+        <View className="absolute bottom-0 items-center w-full gap-8 p-8 pb-12 shadow-lg rounded-t-xl bg-zinc-50 dark:bg-zinc-900">
           {children}
         </View>
       </Modal>

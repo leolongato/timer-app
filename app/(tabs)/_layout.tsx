@@ -1,6 +1,8 @@
 import {
   IconAlarm,
   IconAlarmFilled,
+  IconCircleNumber1,
+  IconCircleNumber1Filled,
   IconClockHour8,
   IconClockHour8Filled,
 } from "@tabler/icons-react-native";
@@ -63,6 +65,23 @@ export default function TabLayout() {
               />
             ) : (
               <IconWrapper icon={IconClockHour8} size={28} color={color} />
+            ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="emom"
+        options={{
+          title: "EMOM",
+          tabBarIcon: ({ color, focused }) =>
+            focused ? (
+              <IconWrapper
+                icon={IconCircleNumber1Filled}
+                size={28}
+                color={color}
+              />
+            ) : (
+              <IconWrapper icon={IconCircleNumber1} size={28} color={color} />
             ),
         }}
       />

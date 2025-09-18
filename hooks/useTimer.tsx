@@ -1,3 +1,4 @@
+import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import { useEffect, useMemo, useState } from "react";
 
 export enum StepType {
@@ -42,31 +43,46 @@ export function useTimer(rounds: Round[], prepare: number = 10) {
   const [showPopup, setShowPopup] = useState(false);
 
   const elapsedMinutes = Math.floor(elapsed / 60);
-  const elapsedSeconds = elapsed % 60;
+  const elapsedSeconds = Math.floor(elapsed % 60);
+
+  const remainingMinutes = Math.floor(remaining / 60);
+  const remainingSeconds = Math.floor(remaining % 60);
+
+  useEffect(() => {
+    if (isRunning) {
+      activateKeepAwakeAsync("timer");
+    } else {
+      deactivateKeepAwake("timer");
+    }
+  }, [isRunning]);
+
+  useEffect(() => {
+    if (remaining === 0 && stepIndex + 1 === sequence.length) {
+      setShowPopup(true);
+    }
+  }, [remaining, stepIndex, sequence]);
 
   useEffect(() => {
     if (!isRunning) return;
 
     const interval = setInterval(() => {
       setRemaining((prev) => {
-        if (prev > 1) {
+        if (prev > 0) {
+          // Só conta elapsed se não for PREPARE
           if (sequence[stepIndex].type !== StepType.PREPARE) {
             setElapsed((e) => e + 1);
           }
+
+          // Ainda tem tempo -> apenas decrementa
           return prev - 1;
         } else {
-          if (sequence[stepIndex].type !== StepType.PREPARE) {
-            setElapsed((e) => e + 1);
-          }
+          // Troca de step
           const nextIndex = stepIndex + 1;
           if (nextIndex < sequence.length) {
             setStepIndex(nextIndex);
             return sequence[nextIndex].duration;
-          } else {
-            setIsRunning(false);
-            setShowPopup(true);
-            return 0;
           }
+          return 0;
         }
       });
     }, 1000);
@@ -80,8 +96,6 @@ export function useTimer(rounds: Round[], prepare: number = 10) {
     if (curStep.duration === 0) return 0;
     return ((curStep.duration - remaining) / curStep.duration) * 100;
   }, [remaining, stepIndex, sequence]);
-
-  const displayTime = remaining;
 
   const start = () => {
     if (!isRunning && sequence.length > 0) {
@@ -112,7 +126,6 @@ export function useTimer(rounds: Round[], prepare: number = 10) {
     elapsed,
     elapsedMinutes,
     elapsedSeconds,
-    displayTime,
     isRunning,
     showPopup,
     setShowPopup,
@@ -122,5 +135,7 @@ export function useTimer(rounds: Round[], prepare: number = 10) {
     stop,
     reset,
     progress,
+    remainingMinutes,
+    remainingSeconds,
   };
 }

@@ -18,20 +18,23 @@ const TimerProgressBar = ({
   strokeWidth,
   trackColor,
   progressColor,
-  animationDuration = 100,
+  animationDuration = 50,
   children,
 }: TimerProgressBarType) => {
-  // Ajusta o raio para o stroke não ultrapassar bordas
   const radiusAdjusted = radius - strokeWidth / 2;
   const circumference = 2 * Math.PI * radiusAdjusted;
   const animatedValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(animatedValue, {
-      toValue: percentage,
-      duration: animationDuration,
-      useNativeDriver: false,
-    }).start();
+    if (percentage < 100) {
+      Animated.timing(animatedValue, {
+        toValue: percentage,
+        duration: animationDuration,
+        useNativeDriver: false,
+      }).start();
+    } else {
+      animatedValue.setValue(100);
+    }
   }, [percentage, animationDuration, animatedValue]);
 
   const strokeDashoffset = animatedValue.interpolate({
@@ -65,7 +68,7 @@ const TimerProgressBar = ({
           r={radiusAdjusted}
           stroke={progressColor}
           strokeWidth={strokeWidth}
-          strokeLinecap="round"
+          strokeLinecap="butt"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
           fill="none"
@@ -74,7 +77,7 @@ const TimerProgressBar = ({
       </Svg>
       <View
         style={StyleSheet.absoluteFill}
-        className="flex items-center justify-center"
+        className="flex items-center justify-center gap-8"
       >
         {children}
       </View>

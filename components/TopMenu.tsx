@@ -9,10 +9,22 @@ export enum Tabs {
 
 type Props = {
   onTabChange: (tab: string) => void;
+  showTime?: boolean;
+  showRest?: boolean;
+  showRounds?: boolean;
 };
 
-const TopMenu = ({ onTabChange }: Props) => {
-  const tabs = ["time", "rest", "rounds"];
+const TopMenu = ({
+  onTabChange,
+  showTime = true,
+  showRest = true,
+  showRounds = true,
+}: Props) => {
+  const tabs = Array<string>();
+  if (showTime) tabs.push("time");
+  if (showRest) tabs.push("rest");
+  if (showRounds) tabs.push("rounds");
+
   const [active, setActive] = useState<string>(tabs[0]);
 
   useEffect(() => {

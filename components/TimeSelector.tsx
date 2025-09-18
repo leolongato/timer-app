@@ -1,9 +1,17 @@
+import { IconClockCog } from "@tabler/icons-react-native";
 import { PropsWithChildren, useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import BottomModal from "./BottomModal";
 import Button from "./Button";
+import IconWrapper from "./IconWrapper";
 import NumberCarousel from "./NumberCarousel";
 import TopMenu, { Tabs } from "./TopMenu";
+
+export enum WorkoutType {
+  FORTIME = "fortime",
+  EMOM = "emom",
+  INTERVALS = "intervals",
+}
 
 type Props = PropsWithChildren<{
   initMinutes: number;
@@ -20,6 +28,7 @@ type Props = PropsWithChildren<{
     restSeconds: number;
     rounds: number;
   }) => void;
+  workoutType: WorkoutType;
 }>;
 
 const TimeSelector = ({
@@ -31,6 +40,7 @@ const TimeSelector = ({
   onClose,
   onConfirm,
   initRounds,
+  workoutType,
 }: Props) => {
   const [minutes, setMinutes] = useState<number>(initMinutes);
   const [seconds, setSeconds] = useState<number>(initSecods);
@@ -70,7 +80,23 @@ const TimeSelector = ({
   return (
     <BottomModal visible={visible} onClose={onClose}>
       <View className="flex items-center justify-center w-full h-full gap-8">
-        <TopMenu onTabChange={(activeTab) => setTab(activeTab)} />
+        {workoutType === WorkoutType.INTERVALS && (
+          <TopMenu onTabChange={(activeTab) => setTab(activeTab)} />
+        )}
+        {workoutType === WorkoutType.EMOM && (
+          <TopMenu
+            showRest={false}
+            onTabChange={(activeTab) => setTab(activeTab)}
+          />
+        )}
+        {workoutType === WorkoutType.FORTIME && (
+          <View className="flex-row items-center justify-center gap-4">
+            <IconWrapper icon={IconClockCog} />
+            <Text className="text-3xl font-bold uppercase text-zinc-900 dark:text-zinc-50">
+              Set the time
+            </Text>
+          </View>
+        )}
 
         <View className="flex-row items-center justify-center">
           {tab === Tabs.TIME && (

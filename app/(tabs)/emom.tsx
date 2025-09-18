@@ -30,7 +30,7 @@ function getProgressColor(
   return colorScheme === "dark" ? BaseColor[50] : BaseColor[800];
 }
 
-export default function Intervals() {
+export default function Emom() {
   const colorScheme = useColorScheme();
   const [editTime, setEditTime] = useState<boolean>(false);
   const [
@@ -52,7 +52,10 @@ export default function Intervals() {
           type: StepType.WORK,
           duration: minutes * 60 + seconds,
         },
-        { type: StepType.REST, duration: restMinutes * 60 + restSeconds },
+        {
+          type: StepType.REST,
+          duration: 60,
+        },
       ],
     },
   ];
@@ -185,7 +188,7 @@ export default function Intervals() {
           onConfirm={(cur) => {
             setSelectedTime(cur);
           }}
-          workoutType={WorkoutType.INTERVALS}
+          workoutType={WorkoutType.EMOM}
         />
         <WorkoutResult
           visible={showPopup}
