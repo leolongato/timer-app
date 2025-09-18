@@ -79,7 +79,7 @@ const TimeSelector = ({
 
   return (
     <BottomModal visible={visible} onClose={onClose}>
-      <View className="flex items-center justify-center w-full h-full gap-8">
+      <View className="flex items-center justify-center gap-4">
         {workoutType === WorkoutType.INTERVALS && (
           <TopMenu onTabChange={(activeTab) => setTab(activeTab)} />
         )}

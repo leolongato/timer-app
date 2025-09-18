@@ -68,15 +68,12 @@ export function useTimer(rounds: Round[], prepare: number = 10) {
     const interval = setInterval(() => {
       setRemaining((prev) => {
         if (prev > 0) {
-          // Só conta elapsed se não for PREPARE
           if (sequence[stepIndex].type !== StepType.PREPARE) {
             setElapsed((e) => e + 1);
           }
 
-          // Ainda tem tempo -> apenas decrementa
           return prev - 1;
         } else {
-          // Troca de step
           const nextIndex = stepIndex + 1;
           if (nextIndex < sequence.length) {
             setStepIndex(nextIndex);
