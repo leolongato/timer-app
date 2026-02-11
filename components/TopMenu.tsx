@@ -32,7 +32,7 @@ const TopMenu = ({
   }, [active, onTabChange]);
 
   return (
-    <View className="flex-row items-center justify-center p-2 rounded-md bg-zinc-300 dark:bg-zinc-800">
+    <View className="flex-row items-center gap-1 p-1 rounded-xl bg-zinc-200 dark:bg-zinc-800">
       {tabs.map((val, key) => (
         <Pressable
           key={key}
@@ -49,9 +49,9 @@ const TopMenu = ({
 };
 
 const styles = {
-  pressable: "flex-1 h-full rounded-md",
-  pressableActive: "flex-1 h-full rounded-md bg-zinc-400 dark:bg-zinc-200",
-  text: "self-center uppercase text-xl font-bold text-zinc-600 dark:text-zinc-200",
+  pressable: "flex-1 py-3 px-4 rounded-lg",
+  pressableActive: "flex-1 py-3 px-4 rounded-lg bg-zinc-700 dark:bg-zinc-200",
+  text: "self-center uppercase text-xl font-bold text-zinc-900 dark:text-zinc-100",
   textActive:
     "self-center uppercase text-xl font-bold text-zinc-50 dark:text-zinc-900",
 };

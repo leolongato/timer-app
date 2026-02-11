@@ -1,28 +1,18 @@
-import IconWrapper from "@/components/IconWrapper";
+import SelectedTimeMenu from "@/components/SelectedTimeMenu";
+import TimerController from "@/components/TimerController";
+import TimerCounter from "@/components/TimerCounter";
 import TimerProgressBar from "@/components/TimerProgressBar";
 import TimeSelector, { WorkoutType } from "@/components/TimeSelector";
 import WorkoutResult from "@/components/WorkoutResult";
 import { Round, StepType, useTimer } from "@/hooks/useTimer";
 import { BaseColor, ProgressColor } from "@/theme/colors";
-import {
-  IconCheck,
-  IconClockEdit,
-  IconPlayerPauseFilled,
-  IconPlayerPlayFilled,
-  IconRotate,
-} from "@tabler/icons-react-native";
+import formatTime from "@/utils/format-time";
 import React, { useState } from "react";
-import {
-  ColorSchemeName,
-  Text,
-  TouchableOpacity,
-  useColorScheme,
-  View,
-} from "react-native";
+import { ColorSchemeName, Text, useColorScheme, View } from "react-native";
 
 function getProgressColor(
   step: string,
-  colorScheme: ColorSchemeName = "light"
+  colorScheme: ColorSchemeName = "light",
 ): string {
   if (step === StepType.WORK) return ProgressColor.work;
   if (step === StepType.REST) return ProgressColor.rest;
@@ -60,15 +50,16 @@ export default function Emom() {
     currentStep,
     currentRound,
     totalRounds,
-    elapsed,
-    elapsedMinutes,
-    elapsedSeconds,
+    totalMinutes,
+    totalSeconds,
+    totalElapsed,
     isRunning,
     showPopup,
     setShowPopup,
     start,
     stop,
     reset,
+    finish,
     progress,
     remainingMinutes,
     remainingSeconds,
@@ -77,15 +68,25 @@ export default function Emom() {
   return (
     <View className="items-center justify-center flex-1 bg-white dark:bg-zinc-900">
       <View className="items-center justify-center flex-1 gap-12 bg-bg">
-        {/* STEP NAME */}
-        <Text
-          style={{
-            color: getProgressColor(currentStep?.type, colorScheme),
-          }}
-          className="text-5xl font-bold tracking-wide text-zinc-900 dark:text-zinc-50"
-        >
-          {currentStep?.type.toUpperCase()}
-        </Text>
+        <View className="flex items-center justify-center w-full h-24">
+          {(isRunning || progress > 0 || totalElapsed > 0) && (
+            <Text
+              style={{
+                color: getProgressColor(currentStep?.type, colorScheme),
+              }}
+              className="text-5xl font-bold tracking-wide text-zinc-900 dark:text-zinc-50"
+            >
+              {currentStep?.type.toUpperCase()}
+            </Text>
+          )}
+          {!isRunning && progress === 0 && totalElapsed === 0 && (
+            <SelectedTimeMenu
+              time={formatTime(minutes, seconds)}
+              rounds={String(rounds)}
+              onPress={() => setEditTime(true)}
+            />
+          )}
+        </View>
         <TimerProgressBar
           percentage={progress}
           radius={160}
@@ -93,33 +94,17 @@ export default function Emom() {
           trackColor={colorScheme === "dark" ? BaseColor[700] : BaseColor[200]}
           progressColor={getProgressColor(currentStep?.type, colorScheme)}
         >
-          {/* EDIT TIME */}
-          {!isRunning && elapsed === 0 && (
-            <IconWrapper
-              icon={IconClockEdit}
-              pressable={true}
-              size={38}
-              className="absolute top-0 right-0 rounded-full"
-              onPress={() => setEditTime(true)}
-            />
-          )}
-
           {/* TOTAL TIME */}
           <Text className="self-center text-2xl tracking-wider uppercase text-zinc-900 dark:text-zinc-50">
-            {`${elapsedMinutes.toString().padStart(2, "0")}:${elapsedSeconds.toString().padStart(2, "0")}`}
+            {formatTime(totalMinutes, totalSeconds)}
           </Text>
 
           {/* STEP COUNTER */}
-          <Text
-            style={{
-              color: getProgressColor(currentStep?.type, colorScheme),
-            }}
-            className="font-extrabold text-8xl text-zinc-900 dark:text-zinc-50"
-          >
-            {`${remainingMinutes.toString().padStart(2, "0")}:${remainingSeconds
-              .toString()
-              .padStart(2, "0")}`}
-          </Text>
+          <TimerCounter
+            color={getProgressColor(currentStep?.type, colorScheme)}
+            minutes={remainingMinutes}
+            seconds={remainingSeconds}
+          />
 
           {/* ROUNDS */}
           <Text className="self-center text-xl tracking-wider uppercase text-zinc-900 dark:text-zinc-50">
@@ -128,48 +113,18 @@ export default function Emom() {
         </TimerProgressBar>
 
         {/* CONTROLLER */}
-        <View className="flex-row items-center justify-center gap-12">
-          <TouchableOpacity
-            onPress={reset}
-            className="p-4 rotate-180 border rounded-full border-zinc-800 dark:border-zinc-50"
-          >
-            <IconRotate
-              size={24}
-              color={colorScheme === "dark" ? "#f8fafc" : "#1e293b"}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => (isRunning ? stop() : start())}
-            disabled={minutes + seconds === 0 || rounds === 0}
-            className="p-4 rounded-full bg-zinc-800 dark:bg-zinc-50 disabled:opacity-50"
-          >
-            {!isRunning ? (
-              <IconPlayerPlayFilled
-                size={52}
-                color={colorScheme === "dark" ? "#000000" : "#f8fafc"}
-              />
-            ) : (
-              <IconPlayerPauseFilled
-                size={52}
-                color={colorScheme === "dark" ? "#000000" : "#f8fafc"}
-              />
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            disabled={currentStep.type === StepType.PREPARE}
-            className="p-4 border rounded-full border-zinc-800 dark:border-zinc-50 disabled:opacity-25"
-            onPress={() => {
-              stop();
-              setShowPopup(true);
-            }}
-          >
-            <IconCheck
-              size={24}
-              color={colorScheme === "dark" ? "#f8fafc" : "#1e293b"}
-            />
-          </TouchableOpacity>
-        </View>
-
+        <TimerController
+          reset={reset}
+          start={start}
+          stop={stop}
+          finish={finish}
+          minutes={minutes}
+          seconds={seconds}
+          rounds={rounds}
+          colorScheme={colorScheme}
+          currentStep={currentStep}
+          isRunning={isRunning}
+        />
         {/* MODALS */}
         <TimeSelector
           initMinutes={minutes}
@@ -188,8 +143,8 @@ export default function Emom() {
         />
         <WorkoutResult
           visible={showPopup}
-          minutes={elapsedMinutes}
-          seconds={elapsedSeconds}
+          minutes={totalMinutes}
+          seconds={totalSeconds}
           totalRounds={currentRound}
           onClose={() => {
             setShowPopup(false);

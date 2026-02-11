@@ -1,6 +1,5 @@
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, AppStateStatus } from "react-native";
 
 export enum StepType {
   PREPARE = "prepare",
@@ -12,9 +11,9 @@ export type Step = { type: StepType; duration: number };
 export type Round = { repeat: number; steps: Step[] };
 
 export function useTimer(rounds: Round[], prepare: number = 10) {
-  // ============================================
-  // 1. GERAR SEQUÊNCIA (IGUAL AO SEU CÓDIGO)
-  // ============================================
+  // ===============================
+  // 1. SEQUENCE
+  // ===============================
   const { sequence, stepToRound, totalRounds } = useMemo(() => {
     const seq: Step[] = [];
     const map: number[] = [];
@@ -23,6 +22,7 @@ export function useTimer(rounds: Round[], prepare: number = 10) {
     map.push(0);
 
     let roundNum = 1;
+
     for (const r of rounds) {
       for (let rep = 0; rep < r.repeat; rep++) {
         for (const s of r.steps) {
@@ -40,245 +40,220 @@ export function useTimer(rounds: Round[], prepare: number = 10) {
     };
   }, [rounds, prepare]);
 
-  // ============================================
-  // 2. ESTADOS (IGUAL AO SEU CÓDIGO)
-  // ============================================
+  // ===============================
+  // 2. STATE
+  // ===============================
   const [stepIndex, setStepIndex] = useState(0);
-  const [remaining, setRemaining] = useState(sequence[0]?.duration ?? 0);
-  const [elapsed, setElapsed] = useState(0);
+  const [remainingMs, setRemainingMs] = useState(
+    (sequence[0]?.duration ?? 0) * 1000,
+  );
   const [isRunning, setIsRunning] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
 
-  // ============================================
-  // 3. REFS PARA TIMESTAMP
-  // ============================================
-  const stepStartTimeRef = useRef<number>(0); // Quando o step atual começou
-  const rafIdRef = useRef<number | null>(null);
-  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
-  const backgroundTimeRef = useRef<number>(0);
+  // ===============================
+  // 3. REFS
+  // ===============================
+  const stepStartRef = useRef(0);
+  const workStartRef = useRef(0);
+  const pausedAccumulatedRef = useRef(0);
+  const pauseStartRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
 
-  // Refs para closures
   const stepIndexRef = useRef(stepIndex);
+  const remainingMsRef = useRef(remainingMs);
   const sequenceRef = useRef(sequence);
-  const remainingRef = useRef(remaining);
 
   useEffect(() => {
     stepIndexRef.current = stepIndex;
   }, [stepIndex]);
 
   useEffect(() => {
+    remainingMsRef.current = remainingMs;
+  }, [remainingMs]);
+
+  useEffect(() => {
     sequenceRef.current = sequence;
   }, [sequence]);
 
+  // ===============================
+  // 4. KEEP AWAKE
+  // ===============================
   useEffect(() => {
-    remainingRef.current = remaining;
-  }, [remaining]);
+    if (isRunning) activateKeepAwakeAsync("timer");
+    else deactivateKeepAwake("timer");
 
-  // ============================================
-  // 4. VALORES CALCULADOS (IGUAL AO SEU CÓDIGO)
-  // ============================================
-  const elapsedMinutes = Math.floor(elapsed / 60);
-  const elapsedSeconds = Math.floor(elapsed % 60);
-  const remainingMinutes = Math.floor(remaining / 60);
-  const remainingSeconds = Math.floor(remaining % 60);
-
-  const progress = useMemo(() => {
-    const curStep = sequence[stepIndex];
-    if (!curStep || curStep.duration === 0) return 0;
-    return ((curStep.duration - remaining) / curStep.duration) * 100;
-  }, [remaining, stepIndex, sequence]);
-
-  const currentStep = useMemo(() => {
-    const step = sequence[stepIndex];
-    return step?.duration > 0 ? step : sequence[0];
-  }, [sequence, stepIndex]);
-
-  const currentRound = stepToRound[stepIndex] ?? 0;
-
-  // ============================================
-  // 5. KEEP AWAKE (IGUAL AO SEU CÓDIGO)
-  // ============================================
-  useEffect(() => {
-    if (isRunning) {
-      activateKeepAwakeAsync("timer");
-    } else {
-      deactivateKeepAwake("timer");
-    }
-
-    return () => {
-      deactivateKeepAwake("timer");
-    };
+    deactivateKeepAwake("timer");
   }, [isRunning]);
 
-  // ============================================
-  // 6. DETECÇÃO DE FIM (IGUAL AO SEU CÓDIGO)
-  // ============================================
-  useEffect(() => {
-    if (remaining === 0 && stepIndex + 1 === sequence.length) {
-      setShowPopup(true);
-      setIsRunning(false);
-    }
-  }, [remaining, stepIndex, sequence.length]);
-
-  // ============================================
-  // 7. RESETAR TIMESTAMP QUANDO MUDA DE STEP
-  // ============================================
-  useEffect(() => {
-    if (isRunning) {
-      stepStartTimeRef.current = Date.now();
-    }
-  }, [stepIndex, isRunning]);
-
-  // ============================================
-  // 8. TIMER COM TIMESTAMP (PRECISÃO MÁXIMA)
-  // ============================================
+  // ===============================
+  // 5. MAIN TIMER LOOP
+  // ===============================
   useEffect(() => {
     if (!isRunning) {
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
-        rafIdRef.current = null;
-      }
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       return;
     }
 
-    // Inicializa timestamp do step atual
-    stepStartTimeRef.current = Date.now();
-
     const tick = () => {
-      const now = Date.now();
-      const currentStepIndex = stepIndexRef.current;
-      const currentSequence = sequenceRef.current;
-      const currentStepData = currentSequence[currentStepIndex];
-      const currentRemaining = remainingRef.current;
+      const now = performance.now();
+      const currentStep = sequenceRef.current[stepIndexRef.current];
 
-      if (!currentStepData) {
+      if (!currentStep) {
         setIsRunning(false);
         return;
       }
 
-      // Calcula quanto tempo passou desde que o step começou
-      const elapsedInStep = Math.floor((now - stepStartTimeRef.current) / 1000);
-      const expectedRemaining = currentStepData.duration - elapsedInStep;
+      const durationMs = currentStep.duration * 1000;
+      const elapsedInStep = now - stepStartRef.current;
+      const expectedRemaining = durationMs - elapsedInStep;
 
-      // Se o remaining calculado é diferente do atual, atualiza
-      if (expectedRemaining !== currentRemaining && expectedRemaining >= 0) {
-        setRemaining(expectedRemaining);
+      if (expectedRemaining > 0) {
+        setRemainingMs(Math.max(expectedRemaining, 0));
+      } else {
+        const nextIndex = stepIndexRef.current + 1;
 
-        // Incrementa elapsed (exceto PREPARE)
-        if (currentStepData.type !== StepType.PREPARE) {
-          const secondsPassed = currentRemaining - expectedRemaining;
-          if (secondsPassed > 0) {
-            setElapsed((prev) => prev + secondsPassed);
+        if (nextIndex < sequenceRef.current.length) {
+          const nextStep = sequenceRef.current[nextIndex];
+
+          // Detect PREPARE -> WORK
+          if (
+            currentStep.type === StepType.PREPARE &&
+            nextStep.type === StepType.WORK &&
+            workStartRef.current === 0
+          ) {
+            workStartRef.current = performance.now();
           }
-        }
-      }
 
-      // Se acabou o tempo do step, avança
-      if (expectedRemaining < 0) {
-        const nextIndex = currentStepIndex + 1;
-
-        if (nextIndex < currentSequence.length) {
-          // Avança para o próximo step
           setStepIndex(nextIndex);
-          setRemaining(currentSequence[nextIndex].duration);
-          stepStartTimeRef.current = Date.now(); // Reseta o timestamp
+          setRemainingMs(nextStep.duration * 1000);
+          stepStartRef.current = performance.now();
         } else {
-          // Fim da sequência
-          setRemaining(0);
+          setRemainingMs(0);
+          setIsRunning(false);
+          setShowPopup(true);
+          return;
         }
       }
 
-      rafIdRef.current = requestAnimationFrame(tick);
+      rafRef.current = requestAnimationFrame(tick);
     };
 
-    rafIdRef.current = requestAnimationFrame(tick);
+    tick();
 
     return () => {
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
-        rafIdRef.current = null;
-      }
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, [isRunning]);
 
-  // ============================================
-  // 9. COMPENSAÇÃO DE BACKGROUND
-  // ============================================
-  useEffect(() => {
-    const subscription = AppState.addEventListener("change", (nextAppState) => {
-      if (
-        appStateRef.current === "active" &&
-        nextAppState.match(/inactive|background/)
-      ) {
-        if (isRunning) {
-          backgroundTimeRef.current = Date.now();
-        }
-      }
-
-      if (
-        appStateRef.current.match(/inactive|background/) &&
-        nextAppState === "active"
-      ) {
-        if (isRunning && backgroundTimeRef.current > 0) {
-          const timeInBackground = Math.floor(
-            (Date.now() - backgroundTimeRef.current) / 1000,
-          );
-
-          // Ajusta o stepStartTime para compensar o tempo em background
-          stepStartTimeRef.current -= timeInBackground * 1000;
-          backgroundTimeRef.current = 0;
-        }
-      }
-
-      appStateRef.current = nextAppState;
-    });
-
-    return () => subscription.remove();
-  }, [isRunning]);
-
-  // ============================================
-  // 10. CONTROLES (IGUAL AO SEU CÓDIGO)
-  // ============================================
+  // ===============================
+  // 6. CONTROLS
+  // ===============================
   const start = useCallback(() => {
     if (!isRunning && sequence.length > 0) {
+      const now = performance.now();
+
+      if (pauseStartRef.current > 0) {
+        pausedAccumulatedRef.current += now - pauseStartRef.current;
+        pauseStartRef.current = 0;
+      }
+
+      const currentStep = sequenceRef.current[stepIndexRef.current];
+      const durationMs = currentStep.duration * 1000;
+
+      // 🔒 clamp seguro
+      const safeRemaining = Math.min(
+        Math.max(remainingMsRef.current, 0),
+        durationMs,
+      );
+
+      const alreadyElapsed = durationMs - safeRemaining;
+
+      stepStartRef.current = now - alreadyElapsed;
+
       setIsRunning(true);
     }
   }, [isRunning, sequence.length]);
 
   const stop = useCallback(() => {
+    if (isRunning) {
+      pauseStartRef.current = performance.now();
+      setIsRunning(false);
+    }
+  }, [isRunning]);
+
+  const finish = useCallback(() => {
+    const now = performance.now();
+
+    if (pauseStartRef.current > 0) {
+      pausedAccumulatedRef.current += now - pauseStartRef.current;
+      pauseStartRef.current = 0;
+    }
+
     setIsRunning(false);
+    setShowPopup(true);
   }, []);
 
   const reset = useCallback(() => {
     setIsRunning(false);
     setStepIndex(0);
-    setRemaining(sequence[0]?.duration ?? 0);
-    setElapsed(0);
+    setRemainingMs((sequence[0]?.duration ?? 0) * 1000);
     setShowPopup(false);
-    stepStartTimeRef.current = 0;
-    backgroundTimeRef.current = 0;
+
+    pausedAccumulatedRef.current = 0;
+    pauseStartRef.current = 0;
+    stepStartRef.current = 0;
+    workStartRef.current = 0;
   }, [sequence]);
 
-  // ============================================
-  // 11. RETORNO (IGUAL AO SEU CÓDIGO)
-  // ============================================
+  // ===============================
+  // 7. DERIVED VALUES
+  // ===============================
+  const remaining = Math.ceil(remainingMs / 1000);
+
+  const totalElapsed =
+    workStartRef.current === 0
+      ? 0
+      : Math.floor(
+          (performance.now() -
+            workStartRef.current -
+            pausedAccumulatedRef.current) /
+            1000,
+        );
+
+  const remainingMinutes = Math.floor(remaining / 60);
+  const remainingSeconds = remaining % 60;
+
+  const totalMinutes = Math.floor(totalElapsed / 60);
+  const totalSeconds = totalElapsed % 60;
+
+  const currentStep = sequence[stepIndex];
+  const currentRound = stepToRound[stepIndex] ?? 0;
+
+  const progress =
+    currentStep?.duration > 0
+      ? ((currentStep.duration * 1000 - remainingMs) /
+          (currentStep.duration * 1000)) *
+        100
+      : 0;
+
   return {
     currentStep,
     stepIndex,
     remaining,
-    elapsed,
-    elapsedMinutes,
-    elapsedSeconds,
+    remainingMinutes,
+    remainingSeconds,
+    totalElapsed,
+    totalMinutes,
+    totalSeconds,
     isRunning,
     showPopup,
     setShowPopup,
     currentRound,
     totalRounds,
     start,
+    finish,
     stop,
     reset,
     progress,
-    remainingMinutes,
-    remainingSeconds,
   };
 }

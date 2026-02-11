@@ -29,6 +29,7 @@ type Props = PropsWithChildren<{
     rounds: number;
   }) => void;
   workoutType: WorkoutType;
+  startTab?: Tabs;
 }>;
 
 const TimeSelector = ({
@@ -41,10 +42,11 @@ const TimeSelector = ({
   onConfirm,
   initRounds,
   workoutType,
+  startTab,
 }: Props) => {
   const [minutes, setMinutes] = useState<number>(initMinutes);
   const [seconds, setSeconds] = useState<number>(initSecods);
-  const [rounds, setRounds] = useState<number>(initRounds);
+  const [rounds, setRounds] = useState<number>(initRounds ?? 1);
   const [restMinutes, setRestMinutes] = useState<number>(initRestMinutes);
   const [restSeconds, setRestSeconds] = useState<number>(initRestSeconds);
   const [tab, setTab] = useState<string>(Tabs.TIME);
@@ -53,7 +55,7 @@ const TimeSelector = ({
     if (visible) {
       setMinutes(initMinutes);
       setSeconds(initSecods);
-      setRounds(initRounds);
+      setRounds(initRounds ?? 1);
       setRestMinutes(initRestMinutes);
       setRestSeconds(initRestSeconds);
     }
@@ -64,6 +66,7 @@ const TimeSelector = ({
     initRounds,
     initRestMinutes,
     initRestSeconds,
+    startTab,
   ]);
 
   const handleDone = () => {

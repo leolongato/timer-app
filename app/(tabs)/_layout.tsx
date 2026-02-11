@@ -14,19 +14,14 @@ import { HapticTab } from "@/components/HapticTab";
 import IconWrapper from "@/components/IconWrapper";
 import TabBarBackground from "@/components/ui/TabBarBackground";
 import { BaseColor } from "@/theme/colors";
+
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
   return (
     <Tabs
       screenOptions={{
-        headerShown: true,
-        headerTransparent: true,
-        headerTitleStyle: {
-          display: "none",
-        },
-        headerLeftContainerStyle: { paddingLeft: 8 },
-        headerRightContainerStyle: { paddingRight: 8 },
+        headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarPosition: "bottom",
