@@ -52,10 +52,6 @@ export default function Emom() {
           type: StepType.WORK,
           duration: minutes * 60 + seconds,
         },
-        {
-          type: StepType.REST,
-          duration: 60,
-        },
       ],
     },
   ];

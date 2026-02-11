@@ -21,9 +21,9 @@ const TopMenu = ({
   showRounds = true,
 }: Props) => {
   const tabs = Array<string>();
-  if (showTime) tabs.push("time");
-  if (showRest) tabs.push("rest");
-  if (showRounds) tabs.push("rounds");
+  if (showTime) tabs.push(Tabs.TIME);
+  if (showRest) tabs.push(Tabs.REST);
+  if (showRounds) tabs.push(Tabs.ROUNDS);
 
   const [active, setActive] = useState<string>(tabs[0]);
 

@@ -98,21 +98,20 @@ const TimeSelector = ({
           </View>
         )}
 
-        <View className="flex-row items-center justify-center">
+        <View className="flex-row items-center justify-center gap-2">
           {tab === Tabs.TIME && (
             <>
               <NumberCarousel
                 range={60}
                 value={minutes}
                 onValueChange={setMinutes}
+                unity="min"
               />
-              <Text className="m-2 text-4xl font-extrabold text-center text-zinc-900 dark:text-zinc-50">
-                :
-              </Text>
               <NumberCarousel
                 range={60}
                 value={seconds}
                 onValueChange={setSeconds}
+                unity="sec"
               />
             </>
           )}
@@ -122,14 +121,13 @@ const TimeSelector = ({
                 range={60}
                 value={restMinutes}
                 onValueChange={setRestMinutes}
+                unity="min"
               />
-              <Text className="m-2 text-4xl font-extrabold text-center text-zinc-900 dark:text-zinc-50">
-                :
-              </Text>
               <NumberCarousel
                 range={60}
                 value={restSeconds}
                 onValueChange={setRestSeconds}
+                unity="sec"
               />
             </>
           )}

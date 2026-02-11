@@ -15,12 +15,14 @@ type NumberCarouselProps = {
   value: number;
   onValueChange: (value: number) => void;
   range: number;
+  unity?: string;
 };
 
 export default function NumberCarousel({
   value,
   onValueChange,
   range,
+  unity,
 }: NumberCarouselProps) {
   const numbers = Array.from({ length: range }, (_, i) => i);
   const [selected, setSelected] = useState(value);
@@ -73,7 +75,7 @@ export default function NumberCarousel({
 
       <View
         style={{ height: CONTAINER_HEIGHT }}
-        className="p-2 rounded-lg bg-zinc-200/70 dark:bg-zinc-800"
+        className="flex-row items-center justify-center gap-1 p-2 rounded-lg bg-zinc-200/70 dark:bg-zinc-800"
       >
         <ScrollView
           ref={scrollRef}
@@ -107,6 +109,11 @@ export default function NumberCarousel({
             </View>
           ))}
         </ScrollView>
+        {unity && (
+          <Text className="text-center uppercase text-zinc-900 dark:text-zinc-50">
+            {unity}
+          </Text>
+        )}
       </View>
 
       <IconWrapper pressable onPress={handleDown} icon={IconCaretDownFilled} />

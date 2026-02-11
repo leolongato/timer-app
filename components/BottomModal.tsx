@@ -28,7 +28,8 @@ export default function BottomModal({ visible, onClose, children }: Props) {
       }
     })
     .onEnd((event) => {
-      if (event.translationY >= height / 3) {
+      const reachedBottomEndOfScreen = (event.absoluteY * 100) / height >= 90;
+      if (reachedBottomEndOfScreen) {
         Animated.timing(translationY, {
           toValue: height,
           duration: 200,
