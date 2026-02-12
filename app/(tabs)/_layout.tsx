@@ -31,7 +31,7 @@ export default function TabLayout() {
           ios: {
             borderTopWidth: 0.2,
             borderTopColor:
-              colorScheme === "dark" ? BaseColor[700] : BaseColor[200],
+              colorScheme === "dark" ? BaseColor[600] : BaseColor[200],
             position: "absolute",
             elevation: 0,
             backgroundColor: "transparent",
@@ -39,9 +39,9 @@ export default function TabLayout() {
           default: {
             borderTopWidth: 0.2,
             borderTopColor:
-              colorScheme === "dark" ? BaseColor[600] : BaseColor[100],
+              colorScheme === "dark" ? BaseColor[700] : BaseColor[300],
             backgroundColor:
-              colorScheme === "dark" ? BaseColor[700] : BaseColor[50],
+              colorScheme === "dark" ? BaseColor[600] : BaseColor[200],
             elevation: 0,
           },
         }),

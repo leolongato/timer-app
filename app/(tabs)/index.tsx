@@ -68,7 +68,7 @@ export default function Index() {
   } = useTimer(workoutDefinition, 10);
 
   return (
-    <View className="items-center justify-center flex-1 bg-white dark:bg-zinc-900">
+    <View className="items-center justify-center flex-1 bg-zinc-50 dark:bg-zinc-900">
       <View className="items-center justify-center flex-1 w-full gap-12">
         <View className="flex items-center justify-center w-full h-24">
           {(isRunning || progress > 0 || totalElapsed > 0) && (

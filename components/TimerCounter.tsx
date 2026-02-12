@@ -19,7 +19,6 @@ const TimerCounter = ({ minutes, seconds, color }: Props) => {
       style={{
         color: color,
         fontVariant: ["tabular-nums"],
-        fontFamily: "monospace",
         letterSpacing: 2,
       }}
       className="font-extrabold text-8xl"

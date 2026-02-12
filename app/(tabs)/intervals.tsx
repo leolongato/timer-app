@@ -1,3 +1,4 @@
+import RoundsCounter from "@/components/RoundsCounter";
 import SelectedTimeMenu from "@/components/SelectedTimeMenu";
 import TimerController from "@/components/TimerController";
 import TimerCounter from "@/components/TimerCounter";
@@ -6,20 +7,11 @@ import TimeSelector, { WorkoutType } from "@/components/TimeSelector";
 import { Tabs } from "@/components/TopMenu";
 import WorkoutResult from "@/components/WorkoutResult";
 import { Round, StepType, useTimer } from "@/hooks/useTimer";
-import { BaseColor, ProgressColor } from "@/theme/colors";
+import { BaseColor } from "@/theme/colors";
 import formatTime from "@/utils/format-time";
+import { getProgressColor } from "@/utils/get-progress-color";
 import React, { useState } from "react";
-import { ColorSchemeName, Text, useColorScheme, View } from "react-native";
-
-function getProgressColor(
-  step: string,
-  colorScheme: ColorSchemeName = "light",
-): string {
-  if (step === StepType.WORK) return ProgressColor.work;
-  if (step === StepType.REST) return ProgressColor.rest;
-
-  return colorScheme === "dark" ? BaseColor[50] : BaseColor[800];
-}
+import { Text, useColorScheme, View } from "react-native";
 
 export default function Intervals() {
   const colorScheme = useColorScheme();
@@ -68,7 +60,7 @@ export default function Intervals() {
   } = useTimer(workoutDefinition, 10);
 
   return (
-    <View className="items-center justify-center flex-1 bg-white dark:bg-zinc-900">
+    <View className="items-center justify-center flex-1 bg-zinc-50 dark:bg-zinc-900">
       <View className="items-center justify-center flex-1 w-full gap-12">
         <View className="flex items-center justify-center w-full h-24">
           {(isRunning || progress > 0 || totalElapsed > 0) && (
@@ -98,11 +90,6 @@ export default function Intervals() {
           trackColor={colorScheme === "dark" ? BaseColor[700] : BaseColor[200]}
           progressColor={getProgressColor(currentStep?.type, colorScheme)}
         >
-          {/* TOTAL TIME */}
-          <Text className="self-center text-2xl tracking-wider uppercase text-zinc-900 dark:text-zinc-50">
-            {formatTime(totalMinutes, totalSeconds)}
-          </Text>
-
           {/* STEP COUNTER */}
           <TimerCounter
             color={getProgressColor(currentStep?.type, colorScheme)}
@@ -111,9 +98,10 @@ export default function Intervals() {
           />
 
           {/* ROUNDS */}
-          <Text className="self-center text-2xl font-semibold tracking-wider uppercase text-zinc-900 dark:text-zinc-50">
-            round {currentRound} / {totalRounds}
-          </Text>
+          <RoundsCounter
+            currentRound={currentRound}
+            totalRounds={totalRounds}
+          />
         </TimerProgressBar>
 
         {/* CONTROLLER */}

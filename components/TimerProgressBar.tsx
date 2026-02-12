@@ -18,7 +18,7 @@ const TimerProgressBar = ({
   strokeWidth,
   trackColor,
   progressColor,
-  animationDuration = 50,
+  animationDuration = 0,
   children,
 }: TimerProgressBarType) => {
   const radiusAdjusted = radius - strokeWidth / 2;
@@ -77,7 +77,7 @@ const TimerProgressBar = ({
       </Svg>
       <View
         style={StyleSheet.absoluteFill}
-        className="flex items-center justify-center gap-8"
+        className="relative flex items-center justify-center gap-8"
       >
         {children}
       </View>

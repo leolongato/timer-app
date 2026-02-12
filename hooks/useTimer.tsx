@@ -1,5 +1,6 @@
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AppState } from "react-native";
 
 export enum StepType {
   PREPARE = "prepare",
@@ -22,7 +23,6 @@ export function useTimer(rounds: Round[], prepare: number = 10) {
     map.push(0);
 
     let roundNum = 1;
-
     for (const r of rounds) {
       for (let rep = 0; rep < r.repeat; rep++) {
         for (const s of r.steps) {
@@ -51,55 +51,72 @@ export function useTimer(rounds: Round[], prepare: number = 10) {
   const [showPopup, setShowPopup] = useState(false);
 
   // ===============================
-  // 3. REFS
+  // 3. REFS - Apenas timestamps
   // ===============================
+  const rafRef = useRef<number | null>(null);
   const stepStartRef = useRef(0);
   const workStartRef = useRef(0);
   const pausedAccumulatedRef = useRef(0);
   const pauseStartRef = useRef(0);
-  const rafRef = useRef<number | null>(null);
-
-  const stepIndexRef = useRef(stepIndex);
-  const remainingMsRef = useRef(remainingMs);
-  const sequenceRef = useRef(sequence);
-
-  useEffect(() => {
-    stepIndexRef.current = stepIndex;
-  }, [stepIndex]);
-
-  useEffect(() => {
-    remainingMsRef.current = remainingMs;
-  }, [remainingMs]);
-
-  useEffect(() => {
-    sequenceRef.current = sequence;
-  }, [sequence]);
 
   // ===============================
   // 4. KEEP AWAKE
   // ===============================
   useEffect(() => {
-    if (isRunning) activateKeepAwakeAsync("timer");
-    else deactivateKeepAwake("timer");
-
-    deactivateKeepAwake("timer");
+    function helper() {
+      if (isRunning) {
+        activateKeepAwakeAsync("timer");
+      } else {
+        deactivateKeepAwake("timer");
+      }
+      return deactivateKeepAwake("timer");
+    }
+    helper();
   }, [isRunning]);
 
   // ===============================
-  // 5. MAIN TIMER LOOP
+  // 5. BACKGROUND SUPPORT
+  // ===============================
+  useEffect(() => {
+    let bgStart = 0;
+
+    const sub = AppState.addEventListener("change", (state) => {
+      if (!isRunning) return;
+
+      if (state.match(/inactive|background/)) {
+        bgStart = performance.now();
+      } else if (state === "active" && bgStart > 0) {
+        const bgTime = performance.now() - bgStart;
+        stepStartRef.current += bgTime;
+        if (workStartRef.current > 0) {
+          workStartRef.current += bgTime;
+        }
+        bgStart = 0;
+      }
+    });
+
+    return () => sub.remove();
+  }, [isRunning]);
+
+  // ===============================
+  // 6. MAIN TIMER LOOP
   // ===============================
   useEffect(() => {
     if (!isRunning) {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
       return;
     }
 
     const tick = () => {
       const now = performance.now();
-      const currentStep = sequenceRef.current[stepIndexRef.current];
+      const currentStep = sequence[stepIndex];
 
       if (!currentStep) {
         setIsRunning(false);
+        setShowPopup(true);
         return;
       }
 
@@ -110,10 +127,10 @@ export function useTimer(rounds: Round[], prepare: number = 10) {
       if (expectedRemaining > 0) {
         setRemainingMs(Math.max(expectedRemaining, 0));
       } else {
-        const nextIndex = stepIndexRef.current + 1;
+        const nextIndex = stepIndex + 1;
 
-        if (nextIndex < sequenceRef.current.length) {
-          const nextStep = sequenceRef.current[nextIndex];
+        if (nextIndex < sequence.length) {
+          const nextStep = sequence[nextIndex];
 
           // Detect PREPARE -> WORK
           if (
@@ -138,52 +155,54 @@ export function useTimer(rounds: Round[], prepare: number = 10) {
       rafRef.current = requestAnimationFrame(tick);
     };
 
-    tick();
+    rafRef.current = requestAnimationFrame(tick);
 
     return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
     };
-  }, [isRunning]);
+  }, [isRunning, stepIndex, sequence]);
 
   // ===============================
-  // 6. CONTROLS
+  // 7. CONTROLS
   // ===============================
   const start = useCallback(() => {
-    if (!isRunning && sequence.length > 0) {
-      const now = performance.now();
+    if (isRunning || sequence.length === 0) return;
 
-      if (pauseStartRef.current > 0) {
-        pausedAccumulatedRef.current += now - pauseStartRef.current;
-        pauseStartRef.current = 0;
-      }
+    const now = performance.now();
+    const currentStep = sequence[stepIndex];
+    const durationMs = currentStep.duration * 1000;
 
-      const currentStep = sequenceRef.current[stepIndexRef.current];
-      const durationMs = currentStep.duration * 1000;
-
-      // 🔒 clamp seguro
-      const safeRemaining = Math.min(
-        Math.max(remainingMsRef.current, 0),
-        durationMs,
-      );
-
-      const alreadyElapsed = durationMs - safeRemaining;
-
-      stepStartRef.current = now - alreadyElapsed;
-
-      setIsRunning(true);
+    // Resume: acumula tempo de pausa (exceto no PREPARE)
+    if (pauseStartRef.current > 0 && currentStep.type !== StepType.PREPARE) {
+      pausedAccumulatedRef.current += now - pauseStartRef.current;
+      pauseStartRef.current = 0;
     }
-  }, [isRunning, sequence.length]);
+
+    // Ajusta stepStartRef baseado no remaining atual
+    const safeRemaining = Math.min(Math.max(remainingMs, 0), durationMs);
+    const alreadyElapsed = durationMs - safeRemaining;
+    stepStartRef.current = now - alreadyElapsed;
+
+    setIsRunning(true);
+  }, [isRunning, sequence, stepIndex, remainingMs]);
 
   const stop = useCallback(() => {
-    if (isRunning) {
-      pauseStartRef.current = performance.now();
-      setIsRunning(false);
-    }
+    if (!isRunning) return;
+
+    pauseStartRef.current = performance.now();
+    setIsRunning(false);
   }, [isRunning]);
 
   const finish = useCallback(() => {
-    const now = performance.now();
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
 
+    const now = performance.now();
     if (pauseStartRef.current > 0) {
       pausedAccumulatedRef.current += now - pauseStartRef.current;
       pauseStartRef.current = 0;
@@ -194,6 +213,11 @@ export function useTimer(rounds: Round[], prepare: number = 10) {
   }, []);
 
   const reset = useCallback(() => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+
     setIsRunning(false);
     setStepIndex(0);
     setRemainingMs((sequence[0]?.duration ?? 0) * 1000);
@@ -206,9 +230,14 @@ export function useTimer(rounds: Round[], prepare: number = 10) {
   }, [sequence]);
 
   // ===============================
-  // 7. DERIVED VALUES
+  // 8. DERIVED VALUES
   // ===============================
+  const currentStep = sequence[stepIndex];
+  const currentRound = stepToRound[stepIndex] ?? 0;
+
   const remaining = Math.ceil(remainingMs / 1000);
+  const remainingMinutes = Math.floor(remaining / 60);
+  const remainingSeconds = remaining % 60;
 
   const totalElapsed =
     workStartRef.current === 0
@@ -219,21 +248,17 @@ export function useTimer(rounds: Round[], prepare: number = 10) {
             pausedAccumulatedRef.current) /
             1000,
         );
-
-  const remainingMinutes = Math.floor(remaining / 60);
-  const remainingSeconds = remaining % 60;
-
   const totalMinutes = Math.floor(totalElapsed / 60);
   const totalSeconds = totalElapsed % 60;
 
-  const currentStep = sequence[stepIndex];
-  const currentRound = stepToRound[stepIndex] ?? 0;
-
   const progress =
     currentStep?.duration > 0
-      ? ((currentStep.duration * 1000 - remainingMs) /
-          (currentStep.duration * 1000)) *
-        100
+      ? Math.min(
+          100,
+          ((currentStep.duration * 1000 - remainingMs) /
+            (currentStep.duration * 1000)) *
+            100,
+        )
       : 0;
 
   return {
