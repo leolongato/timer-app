@@ -1,6 +1,7 @@
 import { IconBarbell } from "@tabler/icons-react-native";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, View } from "react-native";
 import BottomModal from "./BottomModal";
+import Button from "./Button";
 import DisplayTime from "./DisplayTime";
 import IconWrapper from "./IconWrapper";
 
@@ -44,14 +45,12 @@ export default function WorkoutResult({
           </View>
         )}
 
-        <TouchableOpacity
-          className="w-full p-3 dark:bg-zinc-700 bg-zinc-900 rounded-xl"
+        <Button
+          className="w-full h-12 bg-zinc-900 dark:bg-zinc-50"
+          textClassName="dark:text-zinc-900 text-zinc-50 text-lg font-bold uppercase"
+          title="Done"
           onPress={onClose}
-        >
-          <Text className="text-lg font-bold text-center uppercase text-zinc-50">
-            Done
-          </Text>
-        </TouchableOpacity>
+        />
       </View>
     </BottomModal>
   );

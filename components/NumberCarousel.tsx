@@ -3,7 +3,13 @@ import {
   IconCaretUpFilled,
 } from "@tabler/icons-react-native";
 import React, { useEffect, useRef, useState } from "react";
-import { NativeSyntheticEvent, ScrollView, Text, View } from "react-native";
+import {
+  FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Text,
+  View,
+} from "react-native";
 import IconWrapper from "./IconWrapper";
 
 const ITEM_HEIGHT = 75;
@@ -26,47 +32,49 @@ export default function NumberCarousel({
 }: NumberCarouselProps) {
   const numbers = Array.from({ length: range }, (_, i) => i);
   const [selected, setSelected] = useState(value);
-  const scrollRef = useRef<ScrollView>(null);
-  const isScrollingRef = useRef(false);
+  const listRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    onValueChange(numbers[selected]);
-  }, [numbers, onValueChange, selected]);
-
-  useEffect(() => {
-    scrollRef.current?.scrollTo({
-      y: selected * ITEM_HEIGHT,
+    setSelected(value);
+    listRef.current?.scrollToOffset({
+      offset: value * ITEM_HEIGHT,
       animated: false,
     });
-  }, []);
+  }, [value]);
+
+  useEffect(() => {
+    onValueChange(selected);
+  }, [selected, onValueChange]);
+
+  const handleMomentumEnd = (
+    event: NativeSyntheticEvent<NativeScrollEvent>,
+  ) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    const index = Math.round(offsetY / ITEM_HEIGHT);
+
+    if (index >= 0 && index < numbers.length) {
+      setSelected(index);
+
+      listRef.current?.scrollToOffset({
+        offset: index * ITEM_HEIGHT,
+        animated: true,
+      });
+    }
+  };
 
   const scrollToIndex = (index: number) => {
-    if (!scrollRef.current) return;
-    isScrollingRef.current = true;
-    scrollRef.current.scrollTo({ y: index * ITEM_HEIGHT, animated: true });
-
-    setTimeout(() => {
-      isScrollingRef.current = false;
-      setSelected(index);
-    }, 200);
+    listRef.current?.scrollToOffset({
+      offset: index * ITEM_HEIGHT,
+      animated: true,
+    });
   };
 
   const handleUp = () => {
-    const next = Math.max(selected - 1, 0);
-    if (!isScrollingRef.current) scrollToIndex(next);
+    scrollToIndex(Math.max(selected - 1, 0));
   };
 
   const handleDown = () => {
-    const next = Math.min(selected + 1, numbers.length - 1);
-    if (!isScrollingRef.current) scrollToIndex(next);
-  };
-
-  const handleScroll = (event: NativeSyntheticEvent<any>) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    const index = Math.round(offsetY / ITEM_HEIGHT);
-    if (index >= 0 && index < numbers.length && index !== selected) {
-      setSelected(index);
-    }
+    scrollToIndex(Math.min(selected + 1, numbers.length - 1));
   };
 
   return (
@@ -77,46 +85,48 @@ export default function NumberCarousel({
         style={{ height: CONTAINER_HEIGHT }}
         className="flex-row items-center justify-center gap-1 p-2 rounded-lg bg-zinc-200/70 dark:bg-zinc-800"
       >
-        <ScrollView
-          ref={scrollRef}
+        <FlatList
+          ref={listRef}
+          data={numbers}
+          keyExtractor={(item) => item.toString()}
           showsVerticalScrollIndicator={false}
-          showsHorizontalScrollIndicator={false}
           snapToInterval={ITEM_HEIGHT}
-          decelerationRate="normal"
-          scrollEventThrottle={16}
-          onScroll={handleScroll}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          getItemLayout={(_, index) => ({
+            length: ITEM_HEIGHT,
+            offset: ITEM_HEIGHT * index,
+            index,
+          })}
           contentContainerStyle={{
             paddingTop: PADDING,
             paddingBottom: PADDING,
-            paddingLeft: 0,
-            paddingRight: 0,
           }}
-        >
-          {numbers.map((item, index) => (
+          onMomentumScrollEnd={handleMomentumEnd}
+          renderItem={({ item, index }) => (
             <View
-              key={index}
               style={{
                 height: ITEM_HEIGHT,
-                width: "100%",
                 justifyContent: "center",
                 alignItems: "center",
-                opacity: item === selected ? 1 : 0.4,
+                opacity: index === selected ? 1 : 0.35,
               }}
             >
               <Text className="text-6xl font-extrabold text-zinc-900 dark:text-zinc-50">
                 {item.toString().padStart(2, "0")}
               </Text>
             </View>
-          ))}
-        </ScrollView>
+          )}
+        />
+
         {unity && (
-          <Text className="text-center uppercase text-zinc-900 dark:text-zinc-50">
+          <Text className="mt-2 text-center uppercase text-zinc-900 dark:text-zinc-50">
             {unity}
           </Text>
         )}
       </View>
 
-      <IconWrapper pressable onPress={handleDown} icon={IconCaretDownFilled} />
+      <IconWrapper icon={IconCaretDownFilled} pressable onPress={handleDown} />
     </View>
   );
 }

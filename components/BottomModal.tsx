@@ -1,82 +1,71 @@
-import { BlurView } from "expo-blur";
-import { PropsWithChildren, useRef } from "react";
+import { BaseColor } from "@/theme/colors";
 import {
-  Animated,
-  Dimensions,
-  Modal,
-  Pressable,
-  StyleSheet,
-  useColorScheme,
-  View,
-} from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+  BottomSheetBackdrop,
+  BottomSheetModal,
+  BottomSheetView,
+} from "@gorhom/bottom-sheet";
+import { PropsWithChildren, useCallback, useEffect, useRef } from "react";
+import { useColorScheme } from "react-native";
 
 type Props = PropsWithChildren<{
   visible: boolean;
   onClose: () => void;
 }>;
 
-const { height } = Dimensions.get("window");
-
 export default function BottomModal({ visible, onClose, children }: Props) {
   const colorScheme = useColorScheme();
-  const translationY = useRef(new Animated.Value(0)).current;
-  const pan = Gesture.Pan()
-    .onUpdate((event) => {
-      if (event.translationY > 0) {
-        translationY.setValue(event.translationY);
-      }
-    })
-    .onEnd((event) => {
-      const reachedBottomEndOfScreen = (event.absoluteY * 100) / height >= 90;
-      if (reachedBottomEndOfScreen) {
-        Animated.timing(translationY, {
-          toValue: height,
-          duration: 200,
-          useNativeDriver: true,
-        }).start(() => {
-          translationY.setValue(0);
-        });
-        onClose();
-      } else {
-        Animated.spring(translationY, {
-          toValue: 0,
-          useNativeDriver: true,
-        }).start();
-      }
-    })
-    .runOnJS(true);
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
+
+  useEffect(() => {
+    if (visible) {
+      bottomSheetRef.current?.present();
+    } else {
+      bottomSheetRef.current?.dismiss();
+    }
+  }, [visible]);
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+        pressBehavior="close"
+      />
+    ),
+    [],
+  );
 
   return (
-    <View className="absolute w-full h-full">
-      {visible && (
-        <BlurView
-          tint={
-            colorScheme === "dark"
-              ? "systemChromeMaterialDark"
-              : "systemChromeMaterialLight"
-          }
-          experimentalBlurMethod="dimezisBlurView"
-          intensity={visible ? 15 : 0}
-          style={StyleSheet.absoluteFill}
-        />
-      )}
-      <Modal transparent={true} visible={visible} animationType="slide">
-        <Pressable style={{ flex: 1 }} onPress={onClose} />
-        <GestureDetector gesture={pan}>
-          <Animated.View
-            style={{
-              transform: [{ translateY: translationY }],
-            }}
-            className="absolute bottom-0 items-center w-full px-8 pt-2 pb-12 shadow-lg rounded-t-xl bg-zinc-50 dark:bg-zinc-900"
-          >
-            <View>
-              <View className="self-center w-12 h-1 m-4 rounded-full dark:bg-zinc-200 bg-zinc-400" />
-            </View>
-            {children}
-          </Animated.View>
-        </GestureDetector>
-      </Modal>
-    </View>
+    <BottomSheetModal
+      ref={bottomSheetRef}
+      backdropComponent={renderBackdrop}
+      enableDynamicSizing
+      enablePanDownToClose
+      enableContentPanningGesture={false}
+      onDismiss={onClose}
+      backgroundStyle={{
+        backgroundColor:
+          colorScheme === "dark" ? BaseColor[900] : BaseColor[50],
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+      }}
+      handleIndicatorStyle={{
+        backgroundColor:
+          colorScheme === "dark" ? BaseColor[100] : BaseColor[500],
+        width: 48,
+        marginTop: 12,
+      }}
+    >
+      <BottomSheetView
+        style={{
+          paddingHorizontal: 24,
+          paddingTop: 8,
+          paddingBottom: 32,
+        }}
+      >
+        {children}
+      </BottomSheetView>
+    </BottomSheetModal>
   );
 }
