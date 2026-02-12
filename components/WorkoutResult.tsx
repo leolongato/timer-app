@@ -7,8 +7,7 @@ import IconWrapper from "./IconWrapper";
 
 type Props = {
   visible: boolean;
-  minutes: number;
-  seconds: number;
+  totalTime: number;
   totalRounds: number;
   onClose: () => void;
   isInterval?: boolean;
@@ -16,8 +15,7 @@ type Props = {
 
 export default function WorkoutResult({
   visible,
-  minutes,
-  seconds,
+  totalTime,
   totalRounds,
   onClose,
   isInterval = true,
@@ -32,7 +30,10 @@ export default function WorkoutResult({
           </Text>
         </View>
 
-        <DisplayTime minutes={minutes} seconds={seconds} />
+        <DisplayTime
+          minutes={Math.floor(totalTime / 60)}
+          seconds={totalTime % 60}
+        />
 
         {isInterval && (
           <View className="flex-row gap-1 my-6">

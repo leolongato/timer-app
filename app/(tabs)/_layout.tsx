@@ -13,9 +13,11 @@ import { Platform, useColorScheme } from "react-native";
 import { HapticTab } from "@/components/HapticTab";
 import IconWrapper from "@/components/IconWrapper";
 import TabBarBackground from "@/components/ui/TabBarBackground";
+import { useWorkoutStore } from "@/store/workoutStore";
 import { BaseColor } from "@/theme/colors";
 
 export default function TabLayout() {
+  const isRunning = useWorkoutStore((s) => s.isRunning);
   const colorScheme = useColorScheme();
 
   return (
@@ -35,6 +37,7 @@ export default function TabLayout() {
             position: "absolute",
             elevation: 0,
             backgroundColor: "transparent",
+            display: isRunning ? "none" : "flex",
           },
           default: {
             borderTopWidth: 0.2,
@@ -43,6 +46,7 @@ export default function TabLayout() {
             backgroundColor:
               colorScheme === "dark" ? BaseColor[600] : BaseColor[200],
             elevation: 0,
+            display: isRunning ? "none" : "flex",
           },
         }),
       }}

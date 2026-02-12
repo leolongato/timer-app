@@ -1,4 +1,4 @@
-import { StepType } from "@/hooks/useTimer";
+import { StepType } from "@/hooks/useWorkoutTimer";
 import { BaseColor, ProgressColor } from "@/theme/colors";
 import { ColorSchemeName } from "react-native";
 

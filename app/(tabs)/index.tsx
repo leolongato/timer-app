@@ -4,25 +4,19 @@ import TimerCounter from "@/components/TimerCounter";
 import TimerProgressBar from "@/components/TimerProgressBar";
 import TimeSelector, { WorkoutType } from "@/components/TimeSelector";
 import WorkoutResult from "@/components/WorkoutResult";
-import { Round, StepType, useTimer } from "@/hooks/useTimer";
-import { BaseColor, ProgressColor } from "@/theme/colors";
+import { StepType, useWorkoutTimer } from "@/hooks/useWorkoutTimer";
+import { BaseColor } from "@/theme/colors";
 import formatTime from "@/utils/format-time";
-import { useState } from "react";
-import { ColorSchemeName, Text, useColorScheme, View } from "react-native";
-
-function getProgressColor(
-  step: string,
-  colorScheme: ColorSchemeName = "light",
-): string {
-  if (step === StepType.WORK) return ProgressColor.work;
-  if (step === StepType.REST) return ProgressColor.rest;
-
-  return colorScheme === "dark" ? BaseColor[50] : BaseColor[800];
-}
+import { getProgressColor } from "@/utils/get-progress-color";
+import { useMemo, useState } from "react";
+import { Text, useColorScheme, useWindowDimensions, View } from "react-native";
 
 export default function Index() {
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
   const colorScheme = useColorScheme();
-  const [editTime, setEditTime] = useState<boolean>(false);
+  const [editTime, setEditTime] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
 
   const [
     { minutes, seconds, rounds, restMinutes, restSeconds },
@@ -35,53 +29,49 @@ export default function Index() {
     restSeconds: 0,
   });
 
-  const totalDuration = minutes * 60 + seconds;
-
-  const workoutDefinition: Round[] = [
-    {
-      repeat: 1,
-      steps: [
-        {
-          type: StepType.WORK,
-          duration: totalDuration,
-        },
-      ],
-    },
-  ];
+  const steps = useMemo(() => {
+    return [
+      { type: StepType.PREPARE, duration: 10 },
+      { type: StepType.WORK, duration: minutes * 60 + seconds },
+    ];
+  }, [minutes, seconds]);
 
   const {
     currentStep,
-    currentRound,
-    totalMinutes,
-    totalSeconds,
-    totalElapsed,
-    isRunning,
-    showPopup,
-    setShowPopup,
-    start,
-    stop,
-    finish,
-    reset,
     progress,
     remainingMinutes,
     remainingSeconds,
-  } = useTimer(workoutDefinition, 10);
+    handleStartResume,
+    pause,
+    reset,
+    finish,
+    isRunning,
+    totalDuration,
+    remaining,
+  } = useWorkoutTimer({
+    steps,
+    onFinish: () => setShowPopup(true),
+  });
+
+  const hasStarted = isRunning || progress > 0;
 
   return (
     <View className="items-center justify-center flex-1 bg-zinc-50 dark:bg-zinc-900">
       <View className="items-center justify-center flex-1 w-full gap-12">
+        {/* HEADER */}
         <View className="flex items-center justify-center w-full h-24">
-          {(isRunning || progress > 0 || totalElapsed > 0) && (
+          {hasStarted && currentStep && (
             <Text
               style={{
-                color: getProgressColor(currentStep?.type, colorScheme),
+                color: getProgressColor(currentStep.type, colorScheme),
               }}
-              className="text-5xl font-bold tracking-wide text-zinc-900 dark:text-zinc-50"
+              className="text-5xl font-bold tracking-wide"
             >
-              {currentStep?.type.toUpperCase()}
+              {currentStep.type.toUpperCase()}
             </Text>
           )}
-          {!isRunning && progress === 0 && totalElapsed === 0 && (
+
+          {!hasStarted && (
             <SelectedTimeMenu
               time={formatTime(minutes, seconds)}
               onPress={() => setEditTime(true)}
@@ -95,19 +85,27 @@ export default function Index() {
           radius={160}
           strokeWidth={20}
           trackColor={colorScheme === "dark" ? BaseColor[700] : BaseColor[200]}
-          progressColor={getProgressColor(currentStep?.type, colorScheme)}
+          progressColor={
+            currentStep
+              ? getProgressColor(currentStep.type, colorScheme)
+              : "#999"
+          }
         >
           <TimerCounter
-            color={getProgressColor(currentStep?.type, colorScheme)}
+            color={
+              currentStep
+                ? getProgressColor(currentStep.type, colorScheme)
+                : "#999"
+            }
             minutes={
               currentStep.type === StepType.PREPARE
                 ? remainingMinutes
-                : totalMinutes
+                : Math.floor((totalDuration - remaining) / 60)
             }
             seconds={
               currentStep.type === StepType.PREPARE
                 ? remainingSeconds
-                : totalSeconds
+                : (totalDuration - remaining) % 60
             }
           />
         </TimerProgressBar>
@@ -115,8 +113,8 @@ export default function Index() {
         {/* CONTROLLER */}
         <TimerController
           reset={reset}
-          start={start}
-          stop={stop}
+          start={handleStartResume}
+          stop={pause}
           finish={finish}
           minutes={minutes}
           seconds={seconds}
@@ -126,7 +124,7 @@ export default function Index() {
           isRunning={isRunning}
         />
 
-        {/* MODALS */}
+        {/* MODAL DE SELEÇÃO */}
         <TimeSelector
           initMinutes={minutes}
           initSecods={seconds}
@@ -139,11 +137,11 @@ export default function Index() {
           workoutType={WorkoutType.FORTIME}
         />
 
+        {/* RESULTADO FINAL */}
         <WorkoutResult
           visible={showPopup}
-          minutes={totalMinutes}
-          seconds={totalSeconds}
-          totalRounds={currentRound}
+          totalTime={totalDuration - remaining}
+          totalRounds={rounds}
           onClose={() => {
             setShowPopup(false);
             reset();
